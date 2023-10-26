@@ -13,7 +13,7 @@ enum WordleCharacterStatus {
 struct WordleBoard<'a> {
     wordle_word: &'a str,
     is_completed: bool,
-    words_guessed: Vec<(&'a str, Vec<WordleCharacterStatus>)>,
+    words_guessed: Vec<Vec<(char, WordleCharacterStatus)>>,
     characters_guessed: HashMap<char, WordleCharacterStatus>
 }
 
@@ -35,8 +35,8 @@ impl <'a> WordleBoard<'a> {
     fn print_board_status(self) {
         println!("Wordle\n");
         for guess in &self.words_guessed {
-            for (i, wordle_character_status) in guess.1.iter().enumerate() {
-                print_character_with_color(&guess.0.chars().nth(i).unwrap(), wordle_character_status);
+            for (char, wordle_character_status) in guess.iter() {
+                print_character_with_color(char, wordle_character_status);
                 print!(" ");
             }
             print!("\n\n");
@@ -70,18 +70,19 @@ impl <'a> WordleBoard<'a> {
             if new_guess.len() != 5 {
                 Err("a guess must be 5 characters long")?
             }
-            let mut new_guess_character_statuses: Vec<WordleCharacterStatus> = Vec::new();
-            for (i, char) in new_guess.chars().enumerate() {
+            let new_guess_char_array = new_guess.chars();
+            let mut new_word_guesses: Vec<(char, WordleCharacterStatus)> = Vec::new();
+            for (i, char) in new_guess_char_array.enumerate() {
                 if self.wordle_word.chars().nth(i).unwrap() == char {
-                    new_guess_character_statuses.push(WordleCharacterStatus::Correct);
+                    new_word_guesses.push((char, WordleCharacterStatus::Correct));
                     self.characters_guessed.insert(char, WordleCharacterStatus::Correct);
                 } else if self.wordle_word.contains(char) {
-                    new_guess_character_statuses.push(WordleCharacterStatus::Close);
+                    new_word_guesses.push((char, WordleCharacterStatus::Close));
                     if self.characters_guessed.get(&char).unwrap_or(&WordleCharacterStatus::NotGuessed) != &WordleCharacterStatus::Correct {
                         self.characters_guessed.insert(char, WordleCharacterStatus::Close);
                     }
                 } else {
-                    new_guess_character_statuses.push(WordleCharacterStatus::Wrong);
+                    new_word_guesses.push((char, WordleCharacterStatus::NotGuessed));
                     if self.characters_guessed.get(&char).unwrap_or(&WordleCharacterStatus::NotGuessed) != &WordleCharacterStatus::Correct || 
                     self.characters_guessed.get(&char).unwrap_or(&WordleCharacterStatus::NotGuessed) != &WordleCharacterStatus::Close {
                         self.characters_guessed.insert(char, WordleCharacterStatus::Wrong);
@@ -89,7 +90,7 @@ impl <'a> WordleBoard<'a> {
                 }
             }
 
-            self.words_guessed.push((new_guess, new_guess_character_statuses));
+            self.words_guessed.push(new_word_guesses);
 
             if self.wordle_word == new_guess || self.words_guessed.len() == 6{
                 self.is_completed = true;
