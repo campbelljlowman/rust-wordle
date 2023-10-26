@@ -1,39 +1,68 @@
 #[allow(dead_code)]
 
 use colored::Colorize;
+use std::collections::HashMap;
 
+#[derive(PartialEq)]
+enum WordleCharacterStatus {
+    Correct,
+    Close,
+    Wrong,
+    NotGuessed
+}
 struct WordleBoard<'a> {
     wordle_word: &'a str,
     is_completed: bool,
-    guesses: Vec<&'a str>
+    words_guessed: Vec<(&'a str, Vec<WordleCharacterStatus>)>,
+    characters_guessed: HashMap<char, WordleCharacterStatus>
 }
 
 impl <'a> WordleBoard<'a> {
     fn new(wordle_word: &'a str) -> Self {
+        let mut initial_characters_guessed: HashMap<char, WordleCharacterStatus> = HashMap::new();
+        for char in "abcdefghijklmnopqrstuvwxyz".chars() {
+            initial_characters_guessed.insert(char, WordleCharacterStatus::NotGuessed);
+        }
+
         WordleBoard {
             wordle_word,
             is_completed: false,
-            guesses: Vec::new()
+            words_guessed: Vec::new(),
+            characters_guessed: initial_characters_guessed
         }
     }
 
-    fn print_status(self) {
+    fn print_board_status(self) {
         println!("Wordle\n");
-        for guess in &self.guesses {
-            for (i, char) in guess.chars().enumerate() {
-                if self.wordle_word.chars().nth(i).unwrap() == char {
-                    print!("{}", char.to_string().on_green());  
-                } else if self.wordle_word.contains(char) {
-                    print!("{}", char.to_string().on_yellow());
-                } else {
-                    print!("{}", char);                
-                }
+        for guess in &self.words_guessed {
+            for (i, wordle_character_status) in guess.1.iter().enumerate() {
+                print_character_with_color(&guess.0.chars().nth(i).unwrap(), wordle_character_status);
+                print!(" ");
             }
-            print!("\n");
+            print!("\n\n");
         }
-        for _ in 0..6-self.guesses.len() {
-            println!("_____");
+        for _ in 0..6-self.words_guessed.len() {
+            println!("_ _ _ _ _");
         }
+
+        println!("");
+        for char in "qwertyuiop".chars() {
+            print_character_with_color(&char, self.characters_guessed.get(&char).unwrap_or(&WordleCharacterStatus::NotGuessed));
+            print!(" ")
+        }
+        println!("");
+        print!(" ");
+        for char in "asdfghjkl".chars() {
+            print_character_with_color(&char, self.characters_guessed.get(&char).unwrap_or(&WordleCharacterStatus::NotGuessed));
+            print!(" ")
+        }
+        println!("");
+        print!("  ");
+        for char in "zxcvbnm".chars() {
+            print_character_with_color(&char, self.characters_guessed.get(&char).unwrap_or(&WordleCharacterStatus::NotGuessed));
+            print!(" ")
+        }
+        println!("");
     }
 
     fn add_guess(&mut self, new_guess: &'a str) -> Result<(), Box<dyn std::error::Error>>{
@@ -41,9 +70,28 @@ impl <'a> WordleBoard<'a> {
             if new_guess.len() != 5 {
                 Err("a guess must be 5 characters long")?
             }
-            self.guesses.push(new_guess);
+            let mut new_guess_character_statuses: Vec<WordleCharacterStatus> = Vec::new();
+            for (i, char) in new_guess.chars().enumerate() {
+                if self.wordle_word.chars().nth(i).unwrap() == char {
+                    new_guess_character_statuses.push(WordleCharacterStatus::Correct);
+                    self.characters_guessed.insert(char, WordleCharacterStatus::Correct);
+                } else if self.wordle_word.contains(char) {
+                    new_guess_character_statuses.push(WordleCharacterStatus::Close);
+                    if self.characters_guessed.get(&char).unwrap_or(&WordleCharacterStatus::NotGuessed) != &WordleCharacterStatus::Correct {
+                        self.characters_guessed.insert(char, WordleCharacterStatus::Close);
+                    }
+                } else {
+                    new_guess_character_statuses.push(WordleCharacterStatus::Wrong);
+                    if self.characters_guessed.get(&char).unwrap_or(&WordleCharacterStatus::NotGuessed) != &WordleCharacterStatus::Correct || 
+                    self.characters_guessed.get(&char).unwrap_or(&WordleCharacterStatus::NotGuessed) != &WordleCharacterStatus::Close {
+                        self.characters_guessed.insert(char, WordleCharacterStatus::Wrong);
+                    }
+                }
+            }
 
-            if self.wordle_word == new_guess || self.guesses.len() == 6{
+            self.words_guessed.push((new_guess, new_guess_character_statuses));
+
+            if self.wordle_word == new_guess || self.words_guessed.len() == 6{
                 self.is_completed = true;
             }
 
@@ -54,16 +102,24 @@ impl <'a> WordleBoard<'a> {
     }
 }
 
+fn print_character_with_color(char: &char, wordle_character_status: &WordleCharacterStatus) {
+    match wordle_character_status {
+        WordleCharacterStatus::Correct => print!("{}", char.to_string().bold().on_green()),
+        WordleCharacterStatus::Close => print!("{}", char.to_string().bold().on_yellow()),
+        WordleCharacterStatus::Wrong => print!("{}", char.to_string().bold().on_truecolor(177, 177, 177)),
+        WordleCharacterStatus::NotGuessed => print!("{}", char.to_string().bold())
+    }
+}
 fn main() {
     let mut wordle_board = WordleBoard::new("hello");
     wordle_board.add_guess("olive").unwrap();
-    wordle_board.add_guess("ocean").unwrap();
-    wordle_board.add_guess("heruo").unwrap();
-    wordle_board.add_guess("hello").unwrap();
+    wordle_board.add_guess("haaaa").unwrap();
+    wordle_board.add_guess("omaha").unwrap();
+    // wordle_board.add_guess("hello").unwrap();
     // wordle_board.add_guess("olive").unwrap();
     // wordle_board.add_guess("olive").unwrap();
     // wordle_board.add_guess("olive");
 
-    wordle_board.print_status();
+    wordle_board.print_board_status();
 
 }
