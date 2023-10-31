@@ -4,6 +4,7 @@ use colored::Colorize;
 use std::{collections::HashMap, io};
 use std::io::BufRead;
 use std::fs;
+use rand::Rng;
 
 #[derive(PartialEq)]
 enum WordleCharacterStatus {
@@ -124,7 +125,10 @@ fn main() {
     let binding_valid_wordle_words_string = fs::read_to_string("./valid_wordle_words.txt").unwrap();
     let valid_wordle_words: Vec<&str> = binding_valid_wordle_words_string.split(['\n']).collect();
 
-    let mut wordle_board = WordleBoard::new("hello", &valid_wordle_words);
+    let index_of_wordle_word = rand::thread_rng().gen_range(0..valid_wordle_words.len());
+
+    let mut wordle_board = WordleBoard::new(valid_wordle_words.get(index_of_wordle_word).unwrap(), &valid_wordle_words);
+    
     let stdin = io::stdin();
 
     loop {
@@ -140,6 +144,7 @@ fn main() {
 
         if wordle_board.is_completed {
             wordle_board.print_board_status();
+            println!("Worlde word is: {}", wordle_board.wordle_word);
             break
         }
     }
