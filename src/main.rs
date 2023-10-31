@@ -3,6 +3,7 @@
 use colored::Colorize;
 use std::{collections::HashMap, io};
 use std::io::BufRead;
+use std::fs;
 
 #[derive(PartialEq)]
 enum WordleCharacterStatus {
@@ -13,13 +14,14 @@ enum WordleCharacterStatus {
 }
 struct WordleBoard<'a> {
     wordle_word: &'a str,
+    valid_wordle_words: &'a Vec<&'a str>,
     is_completed: bool,
     words_guessed: Vec<Vec<(char, WordleCharacterStatus)>>,
     characters_guessed: HashMap<char, WordleCharacterStatus>
 }
 
 impl <'a> WordleBoard<'a> {
-    fn new(wordle_word: &'a str) -> Self {
+    fn new(wordle_word: &'a str, valid_wordle_words: &'a Vec<&'a str>) -> Self {
         let mut initial_characters_guessed: HashMap<char, WordleCharacterStatus> = HashMap::new();
         for char in "abcdefghijklmnopqrstuvwxyz".chars() {
             initial_characters_guessed.insert(char, WordleCharacterStatus::NotGuessed);
@@ -27,6 +29,7 @@ impl <'a> WordleBoard<'a> {
 
         WordleBoard {
             wordle_word,
+            valid_wordle_words,
             is_completed: false,
             words_guessed: Vec::new(),
             characters_guessed: initial_characters_guessed
@@ -71,6 +74,11 @@ impl <'a> WordleBoard<'a> {
             if new_guess.len() != 5 {
                 Err("a guess must be 5 characters long")?
             }
+
+            if !self.valid_wordle_words.contains(&new_guess.as_str()) {
+                Err("guess is not a valid word")?
+            }
+
             let new_guess_char_array = new_guess.chars();
             let mut new_word_guesses: Vec<(char, WordleCharacterStatus)> = Vec::new();
             for (i, char) in new_guess_char_array.enumerate() {
@@ -113,13 +121,19 @@ fn print_character_with_color(char: &char, wordle_character_status: &WordleChara
     }
 }
 fn main() {
-    let mut wordle_board = WordleBoard::new("hello");
+    let binding_valid_wordle_words_string = fs::read_to_string("./valid_wordle_words.txt").unwrap();
+    let valid_wordle_words: Vec<&str> = binding_valid_wordle_words_string.split(['\n']).collect();
+
+    let mut wordle_board = WordleBoard::new("hello", &valid_wordle_words);
+    let stdin = io::stdin();
 
     loop {
         wordle_board.print_board_status();
         println!("Enter Wordle guess");
-        let stdin = io::stdin();
+
         let input_line = stdin.lock().lines().next().unwrap().unwrap();
+
+        println!("");
         if let Err(e) = wordle_board.add_guess(input_line) {
             print!("Error adding guess: {}", e)
         }
