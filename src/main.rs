@@ -1,7 +1,8 @@
 #[allow(dead_code)]
 
 use colored::Colorize;
-use std::collections::HashMap;
+use std::{collections::HashMap, io};
+use std::io::BufRead;
 
 #[derive(PartialEq)]
 enum WordleCharacterStatus {
@@ -32,8 +33,8 @@ impl <'a> WordleBoard<'a> {
         }
     }
 
-    fn print_board_status(self) {
-        println!("Wordle\n");
+    fn print_board_status(&self) {
+        println!("\n");
         for guess in &self.words_guessed {
             for (char, wordle_character_status) in guess.iter() {
                 print_character_with_color(char, wordle_character_status);
@@ -65,7 +66,7 @@ impl <'a> WordleBoard<'a> {
         println!("");
     }
 
-    fn add_guess(&mut self, new_guess: &'a str) -> Result<(), Box<dyn std::error::Error>>{
+    fn add_guess(&mut self, new_guess: String) -> Result<(), Box<dyn std::error::Error>>{
         if !self.is_completed {
             if new_guess.len() != 5 {
                 Err("a guess must be 5 characters long")?
@@ -113,14 +114,19 @@ fn print_character_with_color(char: &char, wordle_character_status: &WordleChara
 }
 fn main() {
     let mut wordle_board = WordleBoard::new("hello");
-    wordle_board.add_guess("olive").unwrap();
-    wordle_board.add_guess("haaaa").unwrap();
-    wordle_board.add_guess("omaha").unwrap();
-    // wordle_board.add_guess("hello").unwrap();
-    // wordle_board.add_guess("olive").unwrap();
-    // wordle_board.add_guess("olive").unwrap();
-    // wordle_board.add_guess("olive");
 
-    wordle_board.print_board_status();
+    loop {
+        wordle_board.print_board_status();
+        println!("Enter Wordle guess");
+        let stdin = io::stdin();
+        let input_line = stdin.lock().lines().next().unwrap().unwrap();
+        if let Err(e) = wordle_board.add_guess(input_line) {
+            print!("Error adding guess: {}", e)
+        }
 
+        if wordle_board.is_completed {
+            wordle_board.print_board_status();
+            break
+        }
+    }
 }
