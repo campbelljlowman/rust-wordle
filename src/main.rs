@@ -122,6 +122,7 @@ fn print_character_with_color(char: &char, wordle_character_status: &WordleChara
         WordleCharacterStatus::NotGuessed => print!("{}", char.to_string().bold())
     }
 }
+
 fn main() {
     let binding_valid_wordle_words_string = fs::read_to_string("./valid_wordle_words.txt").unwrap();
     let valid_wordle_words: Vec<&str> = binding_valid_wordle_words_string.split(['\n']).collect();
