@@ -13,6 +13,7 @@ enum WordleCharacterStatus {
     Wrong,
     NotGuessed
 }
+
 struct WordleBoard<'a> {
     wordle_word: &'a str,
     valid_wordle_words: &'a Vec<&'a str>,
